@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "remindlo-sms-reminders",
+      "type": "skill-md",
+      "description": "Use when a service business owner needs to send SMS or email reminders to customers — appointment reminders, no-show recovery, recurring service reminders (dental check-ups, boiler/HVAC service, tyre changes, vet vaccinations, vehicle inspections such as UK MOT), customer reactivation, or post-visit thank-you messages. Complements Claude for Small Business (payroll, books, marketing) by adding customer messaging. Covers garages, dental practices, salons, vets, HVAC engineers, gyms, opticians, fitness studios, and similar recurring-service trades worldwide. Provides workflows for managing contacts, enrolling them in campaigns, and setting recurrent reminder schedules via the Remindlo MCP server (mcp.remindlo.co.uk) or REST API (api.remindlo.co.uk). Handles E.164 phone formatting across countries, tenant-configurable time zones, and consent rules (GDPR/UK GDPR/PECR, CASL, TCPA and similar). Skip for non-reminder use cases (transactional OTPs, bulk marketing blasts).",
+      "url": "/.well-known/agent-skills/remindlo-sms-reminders/SKILL.md",
+      "digest": "sha256:ea050b38f70c6564a5e2771111c5ffccdf3400bd26c0dcca99328288852bb15c"
+    }
+  ]
+}

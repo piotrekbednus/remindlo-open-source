@@ -1,0 +1,47 @@
+{
+  "name": "agent-skills-index",
+  "version": "0.1.0",
+  "description": "Build a .well-known/agent-skills/index.json discovery manifest so AI agents can find the Skills your domain publishes.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./cli": "./src/cli.js"
+  },
+  "bin": {
+    "agent-skills-index": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "example": "node src/cli.js examples --out examples/index.json"
+  },
+  "keywords": [
+    "agent-skills",
+    "skill-md",
+    "well-known",
+    "discovery",
+    "ai-agents",
+    "claude",
+    "mcp",
+    "llms-txt"
+  ],
+  "license": "MIT",
+  "author": "Remindlo <support@remindlo.co.uk> (https://www.remindlo.co.uk)",
+  "homepage": "https://github.com/piotrekbednus/remindlo-open-source/tree/main/agent-skills-index#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piotrekbednus/remindlo-open-source.git",
+    "directory": "agent-skills-index"
+  },
+  "bugs": {
+    "url": "https://github.com/piotrekbednus/remindlo-open-source/issues"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}

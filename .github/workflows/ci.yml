@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  agent-skills-index:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent-skills-index
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18.17', '20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      # Dogfooding: the committed examples/index.json must match its SKILL.md.
+      - run: node src/cli.js examples --out examples/index.json --check
