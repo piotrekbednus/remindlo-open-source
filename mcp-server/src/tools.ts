@@ -11,11 +11,31 @@ import {
     SendMessageInput,
 } from "./api-client.js";
 
+/**
+ * Tool definitions.
+ *
+ * Every tool carries MCP safety annotations. They are hints, not enforcement —
+ * a client may ignore them — but without them a client has to assume the worst
+ * of every tool: the SDK defaults are `readOnlyHint: false`,
+ * `destructiveHint: true` and `openWorldHint: true`. That makes read-only
+ * lookups look as risky as sending an SMS, so clients either prompt for
+ * everything or, worse, for nothing.
+ *
+ * The distinction that matters most here is `idempotentHint`. `upsert_contact`
+ * converges on the same state however many times it runs, so a retry is safe.
+ * `send_message` sends another SMS every time and bills another segment, so a
+ * retry is not.
+ */
 export const tools: Tool[] = [
     {
         name: "list_campaigns",
         description:
             "List all SMS campaigns available in your Remindlo account. Use this to find campaign IDs for enrolling contacts.",
+        annotations: {
+            title: "List campaigns",
+            readOnlyHint: true,
+            openWorldHint: false,
+        },
         inputSchema: {
             type: "object",
             properties: {},
@@ -26,6 +46,13 @@ export const tools: Tool[] = [
         name: "upsert_contact",
         description:
             "Create or update a contact in Remindlo. If a contact with the same phone or email exists, it will be updated. You can optionally enroll them in campaigns. IMPORTANT: When enrolling a contact in a campaign, you MUST set marketing_consent to true, otherwise SMS messages will not be sent. Always ask the user to confirm consent before setting it.",
+        annotations: {
+            title: "Create or update a contact",
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        },
         inputSchema: {
             type: "object",
             properties: {
@@ -87,6 +114,11 @@ export const tools: Tool[] = [
         name: "get_contact",
         description:
             "Get details of a specific contact by ID, phone number, or email. Returns full contact info including enrolled campaigns.",
+        annotations: {
+            title: "Look up a contact",
+            readOnlyHint: true,
+            openWorldHint: false,
+        },
         inputSchema: {
             type: "object",
             properties: {
@@ -110,6 +142,15 @@ export const tools: Tool[] = [
         name: "send_message",
         description:
             "Send a one-time SMS message to a contact. The contact must have a phone number. IMPORTANT: This feature requires a paid plan — free plan users will receive an error. The message body must not exceed 1600 characters.",
+        annotations: {
+            title: "Send a one-off SMS",
+            readOnlyHint: false,
+            destructiveHint: false,
+            // Every call sends another SMS and bills another segment,
+            // so a client must never treat a retry as free.
+            idempotentHint: false,
+            openWorldHint: true,
+        },
         inputSchema: {
             type: "object",
             properties: {
@@ -130,6 +171,11 @@ export const tools: Tool[] = [
         name: "list_contacts",
         description:
             "List and search contacts with optional filtering. Returns paginated results.",
+        annotations: {
+            title: "List and search contacts",
+            readOnlyHint: true,
+            openWorldHint: false,
+        },
         inputSchema: {
             type: "object",
             properties: {

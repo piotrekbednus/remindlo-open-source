@@ -192,6 +192,26 @@ Make sure you've added your API key to the Claude Desktop config:
 2. Check the config file path is correct for your OS
 3. Verify JSON syntax in claude_desktop_config.json
 
+## Safety annotations
+
+Every tool declares MCP annotations so a client can tell a lookup apart from an
+action that costs money:
+
+| Tool | Read-only | Destructive | Idempotent | Open world |
+|---|---|---|---|---|
+| `list_campaigns` | yes | — | — | no |
+| `get_contact` | yes | — | — | no |
+| `list_contacts` | yes | — | — | no |
+| `upsert_contact` | no | no | **yes** | no |
+| `send_message` | no | no | **no** | yes |
+
+The one worth reading twice is `send_message`: it is the only tool that is not
+idempotent, because every call sends another SMS and bills another segment.
+A client should never retry it automatically.
+
+Annotations are hints. A client may ignore them, so they are not a substitute
+for confirming a send with the user.
+
 ## Development
 
 This package lives in the [remindlo-open-source](https://github.com/piotrekbednus/remindlo-open-source) monorepo.

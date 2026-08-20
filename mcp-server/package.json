@@ -1,6 +1,6 @@
 {
   "name": "@remindlo/mcp-server",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "MCP server for Remindlo SMS Reminder API",
   "type": "module",
   "bin": {
@@ -45,7 +45,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "bugs": {
     "url": "https://github.com/piotrekbednus/remindlo-open-source/issues"

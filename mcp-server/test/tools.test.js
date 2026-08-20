@@ -61,6 +61,60 @@ describe('tool definitions', () => {
   });
 });
 
+describe('safety annotations', () => {
+  const byName = (name) => tools.find((t) => t.name === name);
+
+  test('every tool is annotated', () => {
+    for (const tool of tools) {
+      assert.ok(tool.annotations, `${tool.name} has no annotations`);
+      assert.equal(typeof tool.annotations.title, 'string');
+      assert.equal(typeof tool.annotations.readOnlyHint, 'boolean');
+    }
+  });
+
+  test('the read-only tools are marked read-only', () => {
+    for (const name of ['list_campaigns', 'get_contact', 'list_contacts']) {
+      assert.equal(byName(name).annotations.readOnlyHint, true, `${name} should be read-only`);
+    }
+  });
+
+  test('the writing tools are not marked read-only', () => {
+    for (const name of ['upsert_contact', 'send_message']) {
+      assert.equal(byName(name).annotations.readOnlyHint, false, `${name} writes`);
+    }
+  });
+
+  test('neither writing tool destroys data', () => {
+    for (const name of ['upsert_contact', 'send_message']) {
+      assert.equal(byName(name).annotations.destructiveHint, false);
+    }
+  });
+
+  test('upsert_contact is idempotent, send_message is not', () => {
+    // The distinction that costs money: a retried upsert converges on the same
+    // contact, a retried send bills another SMS segment.
+    assert.equal(byName('upsert_contact').annotations.idempotentHint, true);
+    assert.equal(byName('send_message').annotations.idempotentHint, false);
+  });
+
+  test('only send_message reaches outside the account', () => {
+    assert.equal(byName('send_message').annotations.openWorldHint, true);
+    for (const name of ['list_campaigns', 'get_contact', 'list_contacts', 'upsert_contact']) {
+      assert.equal(byName(name).annotations.openWorldHint, false, `${name} stays within the account`);
+    }
+  });
+
+  test('read-only tools do not carry write-only hints', () => {
+    // destructiveHint and idempotentHint are meaningful only when
+    // readOnlyHint is false; setting them elsewhere just misleads a reader.
+    for (const name of ['list_campaigns', 'get_contact', 'list_contacts']) {
+      const { annotations } = byName(name);
+      assert.equal(annotations.destructiveHint, undefined, `${name} should not set destructiveHint`);
+      assert.equal(annotations.idempotentHint, undefined, `${name} should not set idempotentHint`);
+    }
+  });
+});
+
 describe('handleToolCall validation', () => {
   test('upsert_contact needs a phone or an email', async () => {
     const result = await withForbiddenFetch(() => handleToolCall('upsert_contact', { first_name: 'Sarah' }, 'k'));
