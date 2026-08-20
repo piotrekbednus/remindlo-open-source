@@ -1,4 +1,4 @@
-import { test, describe, before, after } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,7 +16,14 @@ import {
 } from '../src/index.js';
 import { parseArgs, main } from '../src/cli.js';
 
-let root;
+// Created at module scope rather than in a before() hook: Node 18's test runner
+// does not run file-level hooks ahead of tests nested inside describe(), which
+// left `root` undefined there while Node 20+ passed. Module scope needs no
+// runner support at all.
+const root = mkdtempSync(join(tmpdir(), 'agent-skills-'));
+process.on('exit', () => {
+  rmSync(root, { recursive: true, force: true });
+});
 
 function writeSkill(name, contents) {
   mkdirSync(join(root, name), { recursive: true });
@@ -26,14 +33,6 @@ function writeSkill(name, contents) {
 function skillMd(name, description, body = 'Body.') {
   return `---\nname: ${name}\ndescription: ${description}\n---\n\n${body}\n`;
 }
-
-before(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-skills-'));
-});
-
-after(() => {
-  rmSync(root, { recursive: true, force: true });
-});
 
 describe('parseFrontmatter', () => {
   test('reads plain scalars', () => {
