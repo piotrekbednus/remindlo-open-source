@@ -1,0 +1,53 @@
+{
+  "name": "@remindlo/mcp-server",
+  "version": "1.0.9",
+  "description": "MCP server for Remindlo SMS Reminder API",
+  "type": "module",
+  "bin": {
+    "remindlo-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && node --test test/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "mcp",
+    "remindlo",
+    "sms",
+    "reminder",
+    "claude",
+    "ai",
+    "model-context-protocol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piotrekbednus/remindlo-open-source.git",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://www.remindlo.co.uk/help/mcp-server-claude-integration",
+  "license": "MIT",
+  "author": "Remindlo <support@remindlo.co.uk>",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "bugs": {
+    "url": "https://github.com/piotrekbednus/remindlo-open-source/issues"
+  }
+}

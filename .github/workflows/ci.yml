@@ -23,3 +23,24 @@ jobs:
       - run: npm test
       # Dogfooding: the committed examples/index.json must match its SKILL.md.
       - run: node src/cli.js examples --out examples/index.json --check
+
+  mcp-server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+    strategy:
+      fail-fast: false
+      matrix:
+        # The package declares engines.node >=22.
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
