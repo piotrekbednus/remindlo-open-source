@@ -24,6 +24,9 @@ export interface Contact {
     note?: string;
     tags?: string[];
     custom_fields?: Record<string, unknown>;
+    is_recurrent?: boolean;
+    recurrent_interval_value?: number;
+    recurrent_interval_unit?: "days" | "months" | "years";
     created_at?: string;
     updated_at?: string;
     campaigns?: Array<{
@@ -46,6 +49,9 @@ export interface UpsertContactInput {
     tags?: string[];
     custom_fields?: Record<string, unknown>;
     campaign_ids?: string[];
+    is_recurrent?: boolean;
+    recurrent_interval_value?: number;
+    recurrent_interval_unit?: "days" | "months" | "years";
 }
 
 export interface ListContactsParams {
@@ -54,6 +60,7 @@ export interface ListContactsParams {
     offset?: number;
     has_phone?: boolean;
     marketing_consent?: boolean;
+    is_recurrent?: boolean;
     next_due_before?: string;
     next_due_after?: string;
     sort_by?: "created_at" | "updated_at" | "next_due_at" | "first_name";
@@ -213,6 +220,9 @@ export class RemindloClient {
         if (contact.email) {
             text += `\nEmail: ${contact.email}`;
         }
+        if (contact.is_recurrent && contact.recurrent_interval_value && contact.recurrent_interval_unit) {
+            text += `\nRecurs every ${contact.recurrent_interval_value} ${contact.recurrent_interval_unit}`;
+        }
 
         if (data.enrollments && data.enrollments.length > 0) {
             text += "\n\nCampaign enrollments:";
@@ -292,6 +302,8 @@ export class RemindloClient {
             queryParams.set("has_phone", String(params.has_phone));
         if (params.marketing_consent !== undefined)
             queryParams.set("marketing_consent", String(params.marketing_consent));
+        if (params.is_recurrent !== undefined)
+            queryParams.set("is_recurrent", String(params.is_recurrent));
         if (params.next_due_before)
             queryParams.set("next_due_before", params.next_due_before);
         if (params.next_due_after)
@@ -334,7 +346,10 @@ export class RemindloClient {
 
         const contactList = contacts
             .map((c) => {
-                let line = `- ${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unknown";
+                const name = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unknown";
+                // The ID is what get_contact and send_message take, so a
+                // contact picked from this list must be usable as-is.
+                let line = `- ${name} (ID: ${c.id})`;
                 if (c.phone) line += ` | ${c.phone}`;
                 if (c.email) line += ` | ${c.email}`;
                 return line;
@@ -430,6 +445,9 @@ export class RemindloClient {
         }
         if (contact.next_due_at) text += `\nNext due: ${this.formatTimestamp(contact.next_due_at)}`;
         if (contact.last_service_at) text += `\nLast service: ${this.formatTimestamp(contact.last_service_at)}`;
+        if (contact.is_recurrent && contact.recurrent_interval_value && contact.recurrent_interval_unit) {
+            text += `\nRecurs every ${contact.recurrent_interval_value} ${contact.recurrent_interval_unit}`;
+        }
         if (contact.note) text += `\nNote: ${contact.note}`;
         if (contact.tags && contact.tags.length > 0) {
             text += `\nTags: ${contact.tags.join(", ")}`;

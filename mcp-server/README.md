@@ -70,11 +70,15 @@ Create or update a contact. If a contact with the same phone or email exists, it
 **Optional**:
 - `first_name` - First name
 - `last_name` - Last name
-- `marketing_consent` - Whether contact agreed to receive SMS
+- `marketing_consent` - Whether the customer agreed to receive SMS. Campaign messages are only sent when it is `true`; set it only when the customer's agreement has been confirmed.
 - `next_due_at` - Next appointment in ISO 8601. Use `YYYY-MM-DD` for an all-day entry, or full datetime `YYYY-MM-DDTHH:mm:ssZ` (e.g. `2026-03-15T14:30:00Z`) to set a specific time.
-- `campaign_ids` - Array of campaign IDs to enroll contact
+- `last_service_at` - Date of the last visit, ISO 8601
+- `campaign_ids` - Array of campaign IDs to enrol the contact in
 - `tags` - Array of tags
 - `note` - Notes about the contact
+- `custom_fields` - Custom data as key-value pairs
+- `is_recurrent` - The contact has a recurring service; when the next due date passes, Remindlo moves it forward by the interval
+- `recurrent_interval_value` / `recurrent_interval_unit` - The interval, e.g. `6` + `months`. Required when `is_recurrent` is true
 
 ```
 Example: "Add John Smith, phone +447912345678, to the Birthday campaign"
@@ -117,6 +121,7 @@ Search and list contacts with filtering and pagination.
 - `offset` - Skip N results for pagination
 - `has_phone` - Only contacts with phone numbers
 - `marketing_consent` - Filter by consent status
+- `is_recurrent` - Filter by recurring service
 - `next_due_before` / `next_due_after` - Filter by appointment date
 - `sort_by` - Field to sort by (created_at, updated_at, next_due_at, first_name)
 - `sort_order` - asc or desc

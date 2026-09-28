@@ -50,6 +50,17 @@ const server = new Server(
     {
         name: "remindlo",
         version,
+        // MCP 2025-11-25 Implementation fields; the same values the remote
+        // server at mcp.remindlo.co.uk reports. Older clients ignore them.
+        title: "Remindlo",
+        websiteUrl: "https://www.remindlo.co.uk",
+        icons: [
+            {
+                src: "https://www.remindlo.co.uk/favicon/android-chrome-512x512.png",
+                mimeType: "image/png",
+                sizes: ["512x512"],
+            },
+        ],
     },
     {
         capabilities: {

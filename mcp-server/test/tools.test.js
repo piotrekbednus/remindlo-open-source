@@ -59,6 +59,38 @@ describe('tool definitions', () => {
     const upsert = tools.find((t) => t.name === 'upsert_contact');
     assert.match(upsert.inputSchema.properties.phone.description, /E\.164/);
   });
+
+  test('upsert_contact takes the recurring-service fields the REST API accepts', () => {
+    const { properties } = tools.find((t) => t.name === 'upsert_contact').inputSchema;
+    assert.equal(properties.is_recurrent.type, 'boolean');
+    assert.equal(properties.recurrent_interval_value.type, 'number');
+    assert.deepEqual(properties.recurrent_interval_unit.enum, ['days', 'months', 'years']);
+  });
+
+  test('list_contacts can filter by recurring service', () => {
+    const list = tools.find((t) => t.name === 'list_contacts');
+    assert.equal(list.inputSchema.properties.is_recurrent.type, 'boolean');
+  });
+
+  test('marketing_consent tells the model never to assume consent', () => {
+    // Campaign SMS go only to consenting contacts, so the pressure on a model
+    // is to set it true to make an enrolment work. The field says otherwise.
+    const upsert = tools.find((t) => t.name === 'upsert_contact');
+    assert.match(upsert.inputSchema.properties.marketing_consent.description, /never assume/);
+  });
+
+  test('descriptions do not direct the model to other tools', () => {
+    // Directory policy: no instructions about other tools in descriptions.
+    const texts = tools.flatMap((t) => [
+      t.description,
+      ...Object.values(t.inputSchema.properties).map((p) => p.description ?? ''),
+    ]);
+    for (const other of TOOL_NAMES) {
+      for (const text of texts) {
+        assert.ok(!text.includes(other), `"${text}" names ${other}`);
+      }
+    }
+  });
 });
 
 describe('safety annotations', () => {

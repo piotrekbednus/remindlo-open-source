@@ -118,4 +118,54 @@ describe('upsertContact', () => {
       first_name: 'Sarah',
     });
   });
+
+  test('passes the recurring-service fields through and shows the interval', async () => {
+    const calls = stubFetch({
+      success: true,
+      contact_id: 'c1',
+      action: 'created',
+      contact: {
+        id: 'c1',
+        is_recurrent: true,
+        recurrent_interval_value: 6,
+        recurrent_interval_unit: 'months',
+      },
+    });
+    const result = await new RemindloClient('k').upsertContact({
+      phone: '+447912345678',
+      is_recurrent: true,
+      recurrent_interval_value: 6,
+      recurrent_interval_unit: 'months',
+    });
+
+    assert.deepEqual(JSON.parse(calls[0].options.body), {
+      phone: '+447912345678',
+      is_recurrent: true,
+      recurrent_interval_value: 6,
+      recurrent_interval_unit: 'months',
+    });
+    assert.match(textOf(result), /Recurs every 6 months/);
+  });
+});
+
+describe('listContacts', () => {
+  test('sends is_recurrent, including an explicit false', async () => {
+    const calls = stubFetch({ success: true, contacts: [] });
+    await new RemindloClient('k').listContacts({ is_recurrent: false });
+    assert.equal(calls[0].url, 'https://api.remindlo.co.uk/v1/contacts?is_recurrent=false');
+  });
+
+  test('lists each contact with the ID send_message needs', async () => {
+    stubFetch({
+      success: true,
+      contacts: [
+        { id: 'c1', first_name: 'Sarah', last_name: 'Jones', phone: '+447700900123' },
+        { id: 'c2' },
+      ],
+      pagination: { total: 2, limit: 50, offset: 0, has_more: false },
+    });
+    const text = textOf(await new RemindloClient('k').listContacts({}));
+    assert.match(text, /- Sarah Jones \(ID: c1\) \| \+447700900123/);
+    assert.match(text, /- Unknown \(ID: c2\)/);
+  });
 });

@@ -4,6 +4,44 @@ All notable changes to `@remindlo/mcp-server`.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0]
+
+### Added
+
+- **Recurring services.** `upsert_contact` takes `is_recurrent`,
+  `recurrent_interval_value` and `recurrent_interval_unit`, and `list_contacts`
+  can filter by `is_recurrent`. The REST API and the remote server at
+  `mcp.remindlo.co.uk` have supported these since February 2026; this package
+  was the only client that could not set them. A recurring contact's next due
+  date moves forward by the interval once it passes, so "every 6 months" is set
+  once rather than after every visit.
+
+- **Server identity.** The server now reports `title`, `websiteUrl` and an
+  icon, the same values as the remote server, for clients that show them.
+
+### Changed
+
+- **Tool descriptions state facts instead of giving the model orders**, to
+  match the Claude connector directory's rule against instructions about model
+  behaviour or other tools in descriptions. The remote server was changed the
+  same way.
+
+  The consent safeguard is kept, and moved to where it is read at the right
+  moment: the `marketing_consent` field itself now says it is required for
+  campaign messages and must never be assumed. The old tool-level wording
+  ("you MUST set marketing_consent to true, otherwise SMS messages will not be
+  sent") pushed a model towards setting it to make an enrolment work.
+
+- `send_message` says outright that it is not idempotent and that each call
+  bills a separate SMS, and links to the documentation.
+
+### Fixed
+
+- `list_contacts` now shows each contact's ID. It printed names, phones and
+  emails only, so a contact picked from the list could not be passed to
+  `send_message` or `get_contact` without a second lookup. A contact with no
+  name was also meant to show as "Unknown" and never did.
+
 ## [1.1.0]
 
 ### Added

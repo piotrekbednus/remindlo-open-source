@@ -30,7 +30,7 @@ export const tools: Tool[] = [
     {
         name: "list_campaigns",
         description:
-            "List all SMS campaigns available in your Remindlo account. Use this to find campaign IDs for enrolling contacts.",
+            "List all SMS campaigns available in your Remindlo account, with the campaign IDs used to enrol contacts.",
         annotations: {
             title: "List campaigns",
             readOnlyHint: true,
@@ -45,7 +45,7 @@ export const tools: Tool[] = [
     {
         name: "upsert_contact",
         description:
-            "Create or update a contact in Remindlo. If a contact with the same phone or email exists, it will be updated. You can optionally enroll them in campaigns. IMPORTANT: When enrolling a contact in a campaign, you MUST set marketing_consent to true, otherwise SMS messages will not be sent. Always ask the user to confirm consent before setting it.",
+            "Create or update a contact in Remindlo. If a contact with the same phone or email exists, it will be updated. Optionally enrols the contact in campaigns. Campaign messages are only sent to contacts whose marketing_consent is true; the field records that the customer agreed to receive messages.",
         annotations: {
             title: "Create or update a contact",
             readOnlyHint: false,
@@ -75,7 +75,8 @@ export const tools: Tool[] = [
                 },
                 marketing_consent: {
                     type: "boolean",
-                    description: "Whether contact agreed to receive SMS messages",
+                    description:
+                        "Whether the customer has agreed to receive SMS messages. Required for campaign messages to be sent. Set to true only when the customer's agreement has been confirmed with the user; never assume it.",
                 },
                 next_due_at: {
                     type: "string",
@@ -91,7 +92,7 @@ export const tools: Tool[] = [
                     type: "array",
                     items: { type: "string" },
                     description:
-                        "Campaign IDs to auto-enroll the contact. Get IDs from list_campaigns.",
+                        "Campaign IDs to auto-enrol the contact, as returned when listing campaigns.",
                 },
                 tags: {
                     type: "array",
@@ -105,6 +106,21 @@ export const tools: Tool[] = [
                 custom_fields: {
                     type: "object",
                     description: "Custom data as key-value pairs",
+                },
+                is_recurrent: {
+                    type: "boolean",
+                    description:
+                        "Whether this contact has a recurring service (e.g. annual boiler check, 6-month dental visit). When the next due date passes, Remindlo moves it forward by the interval.",
+                },
+                recurrent_interval_value: {
+                    type: "number",
+                    description:
+                        "How often the service recurs (e.g. 6 for every 6 months). Required when is_recurrent is true.",
+                },
+                recurrent_interval_unit: {
+                    type: "string",
+                    enum: ["days", "months", "years"],
+                    description: "Unit for the recurrence interval. Required when is_recurrent is true.",
                 },
             },
             required: [],
@@ -141,7 +157,7 @@ export const tools: Tool[] = [
     {
         name: "send_message",
         description:
-            "Send a one-time SMS message to a contact. The contact must have a phone number. IMPORTANT: This feature requires a paid plan — free plan users will receive an error. The message body must not exceed 1600 characters.",
+            "Send a one-time SMS message to a contact. The contact must have a phone number. Not idempotent: each call sends and bills a separate SMS. Requires a paid plan; on the free plan the call returns an error. The message body must not exceed 1600 characters. Docs: https://www.remindlo.co.uk/help/mcp-server-claude-integration",
         annotations: {
             title: "Send a one-off SMS",
             readOnlyHint: false,
@@ -157,7 +173,7 @@ export const tools: Tool[] = [
                 contact_id: {
                     type: "string",
                     description:
-                        "Contact UUID to send the message to. Use get_contact or list_contacts to find IDs.",
+                        "UUID of the contact to send the message to, as returned when looking up or listing contacts.",
                 },
                 body: {
                     type: "string",
@@ -217,6 +233,10 @@ export const tools: Tool[] = [
                     enum: ["asc", "desc"],
                     description: "Sort order (ascending or descending)",
                 },
+                is_recurrent: {
+                    type: "boolean",
+                    description: "Filter by recurrent service status",
+                },
             },
             required: [],
         },
@@ -247,6 +267,13 @@ export async function handleToolCall(
                 tags: args.tags as string[] | undefined,
                 custom_fields: args.custom_fields as Record<string, unknown> | undefined,
                 campaign_ids: args.campaign_ids as string[] | undefined,
+                is_recurrent: args.is_recurrent as boolean | undefined,
+                recurrent_interval_value: args.recurrent_interval_value as number | undefined,
+                recurrent_interval_unit: args.recurrent_interval_unit as
+                    | "days"
+                    | "months"
+                    | "years"
+                    | undefined,
             };
 
             // Remove undefined values
@@ -328,6 +355,7 @@ export async function handleToolCall(
                 offset: args.offset as number | undefined,
                 has_phone: args.has_phone as boolean | undefined,
                 marketing_consent: args.marketing_consent as boolean | undefined,
+                is_recurrent: args.is_recurrent as boolean | undefined,
                 next_due_before: args.next_due_before as string | undefined,
                 next_due_after: args.next_due_after as string | undefined,
                 sort_by: args.sort_by as ListContactsParams["sort_by"],
