@@ -136,12 +136,14 @@ describe('safety annotations', () => {
     }
   });
 
-  test('read-only tools do not carry write-only hints', () => {
-    // destructiveHint and idempotentHint are meaningful only when
-    // readOnlyHint is false; setting them elsewhere just misleads a reader.
+  test('read-only tools say explicitly that they are not destructive', () => {
+    // The spec calls destructiveHint meaningful only when readOnlyHint is
+    // false, but OpenAI's plugin scanner fills in the default (true) anyway
+    // and labels the tool both read-only and destructive.
+    // idempotentHint stays off read tools.
     for (const name of ['list_campaigns', 'get_contact', 'list_contacts']) {
       const { annotations } = byName(name);
-      assert.equal(annotations.destructiveHint, undefined, `${name} should not set destructiveHint`);
+      assert.equal(annotations.destructiveHint, false, `${name} must set destructiveHint: false`);
       assert.equal(annotations.idempotentHint, undefined, `${name} should not set idempotentHint`);
     }
   });

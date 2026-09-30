@@ -25,6 +25,12 @@ import {
  * converges on the same state however many times it runs, so a retry is safe.
  * `send_message` sends another SMS every time and bills another segment, so a
  * retry is not.
+ *
+ * The read tools also say `destructiveHint: false`, although the spec calls it
+ * meaningful only when `readOnlyHint` is false. OpenAI's plugin scanner fills
+ * in the default (`true`) regardless and labels such a tool both read-only
+ * and destructive. The remote server at mcp.remindlo.co.uk made the same
+ * change on 30 September 2026.
  */
 export const tools: Tool[] = [
     {
@@ -34,6 +40,7 @@ export const tools: Tool[] = [
         annotations: {
             title: "List campaigns",
             readOnlyHint: true,
+            destructiveHint: false,
             openWorldHint: false,
         },
         inputSchema: {
@@ -133,6 +140,7 @@ export const tools: Tool[] = [
         annotations: {
             title: "Look up a contact",
             readOnlyHint: true,
+            destructiveHint: false,
             openWorldHint: false,
         },
         inputSchema: {
@@ -190,6 +198,7 @@ export const tools: Tool[] = [
         annotations: {
             title: "List and search contacts",
             readOnlyHint: true,
+            destructiveHint: false,
             openWorldHint: false,
         },
         inputSchema: {

@@ -4,6 +4,17 @@ All notable changes to `@remindlo/mcp-server`.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1]
+
+### Changed
+
+- **Read-only tools set `destructiveHint: false` explicitly.** The MCP spec
+  calls `destructiveHint` meaningful only when `readOnlyHint` is false, so
+  `list_campaigns`, `get_contact` and `list_contacts` used to omit it. OpenAI's
+  plugin scanner does not apply that rule: it fills in the default (`true`)
+  and labels the tool both read-only and destructive. Tool behaviour is
+  unchanged. The remote server at `mcp.remindlo.co.uk` made the same change.
+
 ## [1.2.0]
 
 ### Added
