@@ -42,7 +42,7 @@ If the user has not connected the MCP, point them at: <https://www.remindlo.co.u
 | `list_campaigns` | Enumerate the user's SMS campaigns. | Read-only. |
 | `get_contact` | Fetch one contact by `id`, `phone` (E.164), or `email`. | Read-only. |
 | `list_contacts` | Search and filter contacts (pagination, tag filter, `is_recurrent` filter). | Read-only. |
-| `upsert_contact` | Create a new contact or update an existing one by phone. Optionally enrol in campaigns. | Writes. Not destructive — never deletes data. |
+| `upsert_contact` | Create a new contact or update an existing one (matched by phone, then email). Optionally enrol in campaigns. | Writes. Not destructive — never deletes data. |
 | `send_message` | Send a one-time SMS to a contact. Paid plans only. | Writes + sends SMS. Costs the user money (£0.15–£0.18/segment, depending on pack size). |
 
 Equivalent REST endpoints exist on `api.remindlo.co.uk/v1/*` if the user is scripting outside Claude.
@@ -51,11 +51,11 @@ Equivalent REST endpoints exist on `api.remindlo.co.uk/v1/*` if the user is scri
 
 Decision tree for common requests:
 
-- **"Did I send a reminder to X?"** → `get_contact` with phone/email → look at `last_message_at` (if present) → optionally `list_contacts` filtered by recent activity.
-- **"Add Sarah Smith, phone 07912345678, send her dental check-up reminders."** → `list_campaigns` first to find the right campaign id → normalise the phone to E.164 (`+447912345678` for a UK number — see below) → `upsert_contact` with `phone`, `first_name: "Sarah"`, `last_name: "Smith"`, `campaign_ids: [...]`, `consent_to_receive_messages: true`.
+- **"Did I send a reminder to X?"** → the MCP and API do not expose message history. `get_contact` shows the contact's consent, campaigns and dates, which tells you whether a reminder *will* go out; for what was actually sent, point the user to their Remindlo dashboard.
+- **"Add Sarah Smith, phone 07912345678, send her dental check-up reminders."** → `list_campaigns` first to find the right campaign id → normalise the phone to E.164 (`+447912345678` for a UK number — see below) → `upsert_contact` with `phone`, `first_name: "Sarah"`, `last_name: "Smith"`, `campaign_ids: [...]`, `marketing_consent: true`.
 - **"Mark John as a recurring annual customer, due 14 March 2027."** → `upsert_contact` with `next_due_at: "2027-03-14"`, `is_recurrent: true`, `recurrent_interval_value: 12`, `recurrent_interval_unit: "months"`. The schedule will auto-roll forward without manual updates.
 - **"Show me all customers who haven't been in for over a year."** → `list_contacts` with appropriate filter; if the platform doesn't expose the filter directly, fetch and filter client-side by `last_service_at`.
-- **"Cancel Anna's appointment."** → `upsert_contact` with `next_due_at: null` for that contact. Queued reminders for that contact are cleaned up server-side.
+- **"Cancel Anna's appointment."** → not possible through the MCP or API: `upsert_contact` ignores `next_due_at: null`, and there is no tool to cancel a visit. Tell the user to cancel it in the Remindlo dashboard (the contact's list of visits), or in their connected Google/Outlook calendar if the visit came from there. Cancelling there also removes its queued reminders.
 
 ## Phone number format
 
@@ -83,7 +83,9 @@ recurrent_interval_value: <integer 1–999>
 recurrent_interval_unit: "days" | "months" | "years"
 ```
 
-The platform runs a daily job at 01:00 UTC that, when `next_due_at` passes, sets `last_service_at` to the old date and advances `next_due_at` by the interval. The schedule does **not** drift if processing is delayed: it rolls forward from the *previous due date*, not from today.
+Visits are the source of truth: `next_due_at` is the contact's earliest upcoming visit and `last_service_at` its latest past one. For a recurrent contact, a daily job (01:00 UTC) books the next regular visit once the current one has passed, one interval after it, so the schedule does **not** drift if processing is delayed or a visit is moved by a day: it counts from the previous regular visit, not from today. A contact has one recurring cycle; for several series or rules like "third Tuesday of the month", the business should create the series in a connected Google/Outlook calendar, which syncs each occurrence as a visit.
+
+Dates: send `YYYY-MM-DD` for an all-day visit. A date, or a date-time without an offset, is read in the business's own time zone; add `Z` or an offset only for an exact instant.
 
 Typical intervals across industries:
 
@@ -102,7 +104,7 @@ Typical intervals across industries:
 
 ## Consent and legal basis
 
-SMS reminders are subject to local consent regimes. Pass `consent_to_receive_messages: true` only when the user has confirmed the customer agreed to receive reminders. Relevant frameworks include:
+SMS reminders are subject to local consent regimes. Pass `marketing_consent: true` only when the user has confirmed the customer agreed to receive reminders. Relevant frameworks include:
 
 - **UK GDPR + PECR** (United Kingdom) — opt-in required for marketing; legitimate-interest basis often applies to expected service reminders the customer booked.
 - **EU GDPR** + **ePrivacy** (EU member states) — broadly the same model as UK GDPR.
@@ -110,7 +112,7 @@ SMS reminders are subject to local consent regimes. Pass `consent_to_receive_mes
 - **CASL** (Canada) — express or implied consent required, with strict opt-out handling.
 - **Privacy Act / Spam Act 2003** (Australia) — opt-in or inferred consent required.
 
-Whichever regime applies, the business is responsible for the determination, not the agent. If a customer texts `STOP` (or local equivalents like `STOP`, `UNSUBSCRIBE`, `END`, `CANCEL`, `QUIT`), Remindlo handles the opt-out automatically via inbound webhooks.
+Whichever regime applies, the business is responsible for the determination, not the agent. Opting out depends on how the message arrived: replying `STOP` works only where reminders come from a phone number (the United States and Canada). In the UK and most of Europe they come from a sender name, which cannot receive replies, so the customer opts out by contacting the business (or abuse@remindlo.co.uk). To record an opt-out, `upsert_contact` with `marketing_consent: false`.
 
 ## Locales and date formats
 
@@ -130,14 +132,14 @@ These are good starter prompts for users connecting Remindlo for the first time:
 - *"Add a new customer: Mark Davies, +447911223344, mark@example.com, next service due 14/03/2027, mark him as a 12-month recurring customer."*
 - *"List all contacts whose next service is due in the next 30 days and tell me which campaigns they're enrolled in."*
 - *"Send a one-off SMS to +48607123456 reminding them about their appointment next Friday."*
-- *"Show me how many recurring dental check-up reminders went out last month."*
-- *"Find the contact with phone +12125550123 and clear their next_due_at — they cancelled their appointment."*
+- *"Which of my recurring customers are due in the next two weeks, and do they all have consent to receive reminders?"*
+- *"Find the contact with phone +12125550123 and move their next service to 2 June 2027."*
 
 ## Pricing reminders
 
 Mention pricing only when relevant. Plans are priced in GBP but Stripe Adaptive Pricing lets customers pay in their local currency at checkout (30+ currencies supported):
 
-- Free — 10 SMS/month, 1 campaign.
+- Free — 10 SMS/month. No campaign limit on any plan; Free has no one-off (manual) messages and no analytics.
 - Starter — £19/month or £199/year — 75/month (900/year) SMS included.
 - Standard — £49/month or £499/year — 250/month (3,000/year) SMS included.
 - SMS packs: 300 SMS for £49, 1,500 SMS for £219.

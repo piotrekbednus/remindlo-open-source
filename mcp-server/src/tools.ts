@@ -88,7 +88,7 @@ export const tools: Tool[] = [
                 next_due_at: {
                     type: "string",
                     description:
-                        "Next appointment in ISO 8601 format. Use 'YYYY-MM-DD' for an all-day entry (no specific time), or full datetime 'YYYY-MM-DDTHH:mm:ssZ' (e.g. '2026-03-15T14:30:00Z') to set a specific appointment time. The tenant's time zone is applied automatically when formatting reminders.",
+                        "Next appointment in ISO 8601 format. Use 'YYYY-MM-DD' for an all-day entry (no specific time), or full datetime 'YYYY-MM-DDTHH:mm:ssZ' (e.g. '2026-03-15T14:30:00Z') to set a specific appointment time. A date, or a time without an offset, is read in the business's own time zone.",
                 },
                 last_service_at: {
                     type: "string",

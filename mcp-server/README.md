@@ -71,8 +71,8 @@ Create or update a contact. If a contact with the same phone or email exists, it
 - `first_name` - First name
 - `last_name` - Last name
 - `marketing_consent` - Whether the customer agreed to receive SMS. Campaign messages are only sent when it is `true`; set it only when the customer's agreement has been confirmed.
-- `next_due_at` - Next appointment in ISO 8601. Use `YYYY-MM-DD` for an all-day entry, or full datetime `YYYY-MM-DDTHH:mm:ssZ` (e.g. `2026-03-15T14:30:00Z`) to set a specific time.
-- `last_service_at` - Date of the last visit, ISO 8601
+- `next_due_at` - Next appointment in ISO 8601. Use `YYYY-MM-DD` for an all-day entry, or full datetime `YYYY-MM-DDTHH:mm:ssZ` (e.g. `2026-03-15T14:30:00Z`) to set a specific time. A date, or a time without an offset, is read in the business's own time zone.
+- `last_service_at` - Date of the last visit, ISO 8601, read the same way
 - `campaign_ids` - Array of campaign IDs to enrol the contact in
 - `tags` - Array of tags
 - `note` - Notes about the contact
