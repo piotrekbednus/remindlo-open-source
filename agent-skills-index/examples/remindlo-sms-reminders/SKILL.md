@@ -30,8 +30,10 @@ Skip this skill when the user wants generic marketing blasts, transactional OTPs
 
 The MCP server lives at `https://mcp.remindlo.co.uk`. Users connect via:
 
-1. **Claude.ai (web)** → Settings → Connectors → Add custom connector → enter the URL → OAuth flow on remindlo.co.uk → done. No API key handling required.
-2. **Claude Desktop / other MCP clients** → API key (`sk_live_…`) in the Authorization header. Keys are generated in Dashboard → Integrations → API keys.
+1. **Claude** (web, desktop, mobile) → the Remindlo listing in the Claude connector directory (https://claude.ai/directory/connectors/remindlo), or Settings → Connectors → Add custom connector → enter the URL → sign in on remindlo.co.uk → Allow. No API key handling required.
+2. **Claude Code** → `claude mcp add --transport http remindlo https://mcp.remindlo.co.uk`, then `/mcp` → Authenticate.
+3. **ChatGPT** (web and desktop) → the Remindlo listing in the ChatGPT plugin directory (https://chatgpt.com/plugins/plugin_asdk_app_6abcc3b80a188191be2f773e55c6fc6a) → Install plugin, or Settings → Plugins → New Plugin → enter the URL, Authentication: OAuth → sign in → Allow.
+4. **Other MCP clients** → the `@remindlo/mcp-server` npm package with an API key (`sk_live_…`). Keys are generated in Dashboard → Integrations → API keys.
 
 If the user has not connected the MCP, point them at: <https://www.remindlo.co.uk/help/mcp-server-claude-integration>
 
@@ -139,11 +141,12 @@ These are good starter prompts for users connecting Remindlo for the first time:
 
 Mention pricing only when relevant. Plans are priced in GBP but Stripe Adaptive Pricing lets customers pay in their local currency at checkout (30+ currencies supported):
 
-- Free — 10 SMS/month. No campaign limit on any plan; Free has no one-off (manual) messages and no analytics.
+- Free — 10 SMS/month. Unlimited campaigns; the only features it lacks are manual messages and analytics.
 - Starter — £19/month or £199/year — 75/month (900/year) SMS included.
 - Standard — £49/month or £499/year — 250/month (3,000/year) SMS included.
 - SMS packs: 300 SMS for £49, 1,500 SMS for £219.
 - Overage: £0.15–£0.18 per SMS segment, depending on pack size.
+- Unused top-up SMS do not expire at renewal. They stay on the account for as long as the paid plan is active; only the included allowance resets. Credit ends with the subscription, so cancelling or moving to Free forfeits whatever is left.
 
 The free tier is **fine for trying the MCP** — `upsert_contact`, `get_contact`, and `list_contacts` work on every plan. `send_message` requires Starter or above.
 
