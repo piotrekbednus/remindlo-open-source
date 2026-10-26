@@ -53,11 +53,14 @@ Equivalent REST endpoints exist on `api.remindlo.co.uk/v1/*` if the user is scri
 
 Decision tree for common requests:
 
-- **"Did I send a reminder to X?"** → the MCP and API do not expose message history. `get_contact` shows the contact's consent, campaigns and dates, which tells you whether a reminder *will* go out; for what was actually sent, point the user to their Remindlo dashboard.
+- **"Did I send a reminder to X?"** → the MCP and API do not expose message history. `get_contact` returns the contact's consent, phone and email, dates and campaign enrolments, which help diagnose whether the contact *can* receive a reminder (for example consent is off, or no enrolment). They do not show that one is scheduled or was sent: that also depends on the campaign running, its timing, a channel matching the contact's phone or email, SMS credit and delivery. For what was actually sent, point the user to their Remindlo dashboard.
 - **"Add Sarah Smith, phone 07912345678, send her dental check-up reminders."** → `list_campaigns` first to find the right campaign id → normalise the phone to E.164 (`+447912345678` for a UK number — see below) → `upsert_contact` with `phone`, `first_name: "Sarah"`, `last_name: "Smith"`, `campaign_ids: [...]`, `marketing_consent: true`.
 - **"Mark John as a recurring annual customer, due 14 March 2027."** → `upsert_contact` with `next_due_at: "2027-03-14"`, `is_recurrent: true`, `recurrent_interval_value: 12`, `recurrent_interval_unit: "months"`. The schedule will auto-roll forward without manual updates.
 - **"Show me all customers who haven't been in for over a year."** → `list_contacts` with appropriate filter; if the platform doesn't expose the filter directly, fetch and filter client-side by `last_service_at`.
-- **"Cancel Anna's appointment."** → not possible through the MCP or API: `upsert_contact` ignores `next_due_at: null`, and there is no tool to cancel a visit. Tell the user to cancel it in the Remindlo dashboard (the contact's list of visits), or in their connected Google/Outlook calendar if the visit came from there. Cancelling there also removes its queued reminders.
+- **"Cancel Anna's appointment."** → not possible through the MCP or API: `upsert_contact` ignores `next_due_at: null`, and there is no tool to cancel a visit. Tell the user where to cancel it:
+  - **Visit added in Remindlo:** cancel it in the dashboard (the contact's list of visits). Its queued reminders are removed straight away.
+  - **Visit synced from a connected calendar (Google, Outlook, ICS feed):** cancel the event in that calendar. Remindlo picks up the cancellation on its next sync, usually within 5–10 minutes but sometimes later, and only then removes the queued reminders, so one due in the meantime can still go out.
+  - Either way, a message that has already been sent cannot be withdrawn.
 
 ## Phone number format
 
@@ -85,7 +88,7 @@ recurrent_interval_value: <integer 1–999>
 recurrent_interval_unit: "days" | "months" | "years"
 ```
 
-Visits are the source of truth: `next_due_at` is the contact's earliest upcoming visit and `last_service_at` its latest past one. For a recurrent contact, a daily job (01:00 UTC) books the next regular visit once the current one has passed, one interval after it, so the schedule does **not** drift if processing is delayed or a visit is moved by a day: it counts from the previous regular visit, not from today. A contact has one recurring cycle; for several series or rules like "third Tuesday of the month", the business should create the series in a connected Google/Outlook calendar, which syncs each occurrence as a visit.
+Visits are the source of truth, and cancelled visits count for neither: `next_due_at` is the contact's earliest upcoming visit that is not cancelled, and `last_service_at` its latest past visit that is not cancelled. There is no "completed" status, so a past visit counts as the last service whether or not the customer turned up. For a recurrent contact, a daily job (01:00 UTC) books the next regular visit once the current one has passed, one interval after it, so the schedule does **not** drift if processing is delayed or a visit is moved by a day: it counts from the previous regular visit, not from today. A contact has one recurring cycle; for several series or rules like "third Tuesday of the month", the business should create the series in a connected Google/Outlook calendar, which syncs each occurrence as a visit.
 
 Dates: send `YYYY-MM-DD` for an all-day visit. A date, or a date-time without an offset, is read in the business's own time zone; add `Z` or an offset only for an exact instant.
 
@@ -106,7 +109,13 @@ Typical intervals across industries:
 
 ## Consent and legal basis
 
-SMS reminders are subject to local consent regimes. Pass `marketing_consent: true` only when the user has confirmed the customer agreed to receive reminders. Relevant frameworks include:
+`marketing_consent` is Remindlo's send switch, not a legal classification: every campaign message, whether a service reminder or a win-back, goes only to contacts where it is `true` (the dashboard calls it "Consent to receive messages"). Whether a given message is a service message or marketing, and whether it rests on consent or another lawful basis such as the customer having booked the service, is the business's decision, not the agent's. Map that decision onto the field:
+
+- `true` when the user confirms the business may message this customer, on whatever basis it has determined. A visit synced from the business's calendar already counts as that, unless the customer opted out.
+- `false` only when the customer has said no or opted out. It is stored as a deliberate withdrawal, and calendar sync will not turn it back on.
+- Leave the field out when you don't know. Never send `false` as a safe default: it would record an opt-out the customer never made.
+
+SMS reminders are subject to local consent regimes. Relevant frameworks include:
 
 - **UK GDPR + PECR** (United Kingdom) — opt-in required for marketing; legitimate-interest basis often applies to expected service reminders the customer booked.
 - **EU GDPR** + **ePrivacy** (EU member states) — broadly the same model as UK GDPR.
@@ -114,7 +123,7 @@ SMS reminders are subject to local consent regimes. Pass `marketing_consent: tru
 - **CASL** (Canada) — express or implied consent required, with strict opt-out handling.
 - **Privacy Act / Spam Act 2003** (Australia) — opt-in or inferred consent required.
 
-Whichever regime applies, the business is responsible for the determination, not the agent. Opting out depends on how the message arrived: replying `STOP` works only where reminders come from a phone number (the United States and Canada). In the UK and most of Europe they come from a sender name, which cannot receive replies, so the customer opts out by contacting the business (or abuse@remindlo.co.uk). To record an opt-out, `upsert_contact` with `marketing_consent: false`.
+Whichever regime applies, the business is responsible for the determination, not the agent. Opting out depends on the sender the customer sees, not on the country: if the reminder came from a phone number, replying `STOP` opts them out. If it came from a sender name (the business's name instead of a number, as in the UK and most of Europe), replies cannot reach anyone, so the customer opts out by contacting the business or Remindlo at abuse@remindlo.co.uk. To record an opt-out, `upsert_contact` with `marketing_consent: false`.
 
 ## Locales and date formats
 
