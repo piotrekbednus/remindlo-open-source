@@ -4,6 +4,15 @@ All notable changes to `@remindlo/mcp-server`.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2]
+
+### Changed
+
+- **`next_due_at` description says how dates are read.** A date, or a time
+  without an offset, is read in the business's own time zone. The API has
+  done this since 26 Oct 2026; before, offset-less values were read as UTC.
+  Tool behaviour is unchanged.
+
 ## [1.2.1]
 
 ### Changed
